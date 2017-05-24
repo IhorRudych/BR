@@ -2,11 +2,11 @@
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 <script src="./jquery.xmlrpc.min.js"></script>
 <script>
-    XMLTest = function() {
+    USB_write = function(data) {
         $.xmlrpc({
             url: 'http://localhost:8000/RPC2',
-            methodName: 'add',
-            params: [1, 1],
+            methodName: 'write',
+            params: [data],
             success: function(response, status, jqXHR) {
                 console.log(response);
             },
@@ -17,7 +17,7 @@
     </script>
 
     <script>
-        XMLTest()
+        USB_write("pump ramp 0 100 50")
     </script>
 
     <body>
