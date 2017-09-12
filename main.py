@@ -31,13 +31,21 @@ def main(args):
 
     class MyFuncs:
         def __init__(self):
-            self.ser = serial.Serial('/dev/ttyACM1', timeout=1)
+            self.ser = serial.Serial('/dev/ttyACM1', timeout=0)
 
-        def write(self, cmd):
-            print(cmd)
-            self.ser.write(b'{}\r\n'.format(cmd))
+        def write(self, data):
+            def bytes(s):
+                return ''.join(chr(x) for x in s)
+            self.ser.write(b'{}'.format(bytes(data)))
             self.ser.flush()
-            return self.ser.read(255)
+            return True
+
+        def read(self):
+            try:
+                return [ord(x) for x in self.ser.read(2048)]
+            except:
+                pass
+            return ''
 
     server.register_instance(MyFuncs())
 
