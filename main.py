@@ -33,6 +33,11 @@ def main(args):
         def __init__(self):
             self.ser = serial.Serial('/dev/ttyACM1', timeout=0)
 
+        def reset(self):
+            self.ser.reset_input_buffer()
+            self.ser.reset_output_buffer()
+            return True
+
         def write(self, data):
             def bytes(s):
                 return ''.join(chr(x) for x in s)
