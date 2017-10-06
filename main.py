@@ -6,6 +6,7 @@
 import serial
 import argparse
 import logging
+import os
 
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 from SimpleXMLRPCServer import SimpleXMLRPCRequestHandler
@@ -36,6 +37,7 @@ class RequestHandler(SimpleXMLRPCRequestHandler, object):
 def main(args):
 
     parser = argparse.ArgumentParser()
+    parser.add_argument("-H", "--host", default="", help="interface to serve rpc from")
     parser.add_argument("-p", "--port", default=8000, help="increase output verbosity")
     args = parser.parse_args()
 
@@ -54,12 +56,18 @@ def main(args):
     logger.addHandler(handler)
 
     # Create server
-    server = SimpleXMLRPCServer(("localhost", args.port), requestHandler=RequestHandler)
+    server = SimpleXMLRPCServer((args.host, args.port), requestHandler=RequestHandler)
     server.register_introspection_functions()
 
     class MyFuncs:
         def __init__(self):
-            self.ser = serial.Serial('/dev/ttyACM1', timeout=0)
+            self.ser = None
+            for i in range(1,10):
+                path = '/dev/ttyACM{}'.format(i)
+                if os.path.exists(path):
+                    self.ser = serial.Serial(path, timeout=0)
+            if self.ser is None:
+                raise Exception('unable to locate /dev/ttyACM*')
             self.logger = logging.getLogger('xmlrpc')
 
         def reset(self):
@@ -72,8 +80,15 @@ def main(args):
             def bytes(s):
                 return ''.join(chr(x) for x in s)
             self.logger.info('WRITE {}'.format(data))
-            self.ser.write(b'{}'.format(bytes(data)))
-            self.ser.flush()
+            retries = 2
+            while retries:
+                try:
+                    retries -= 1
+                    self.ser.write(b'{}'.format(bytes(data)))
+                    self.ser.flush()
+                except:
+                    self.ser.close()
+                    self.__init__()
             return True
 
         def read(self):
@@ -85,10 +100,26 @@ def main(args):
                 pass
             return []
 
-    server.register_instance(MyFuncs())
+        def __enter__(self):
+            return self
 
-    # Run the server's main loop
-    server.serve_forever()
+        def __exit__(self, exc_type, exc_value, traceback):
+            self.ser.close()
+
+    with MyFuncs() as myfuncs:
+        try:
+            server.register_instance(myfuncs)
+        except serial.serialutil.SerialException, e:
+            print(e)
+            return -1
+
+        # Run the server's main loop
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            server.shutdown()
 
     return 0
 
