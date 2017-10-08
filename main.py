@@ -83,21 +83,32 @@ def main(args):
             retries = 2
             while retries:
                 try:
-                    retries -= 1
                     self.ser.write(b'{}'.format(bytes(data)))
                     self.ser.flush()
                 except:
-                    self.ser.close()
+                    if self.ser is not None:
+                        self.ser.close()
                     self.__init__()
+                else:
+                    break
+                finally:
+                    retries -= 1
             return True
 
         def read(self):
-            try:
-                data = [ord(x) for x in self.ser.read(2048)]
-                self.logger.info('READ {}'.format(data))
-                return data
-            except:
-                pass
+            retries = 2
+            while retries:
+                try:
+                    data = [ord(x) for x in self.ser.read(2048)]
+                    self.logger.info('READ {}'.format(data))
+                except:
+                    if self.ser is not None:
+                        self.ser.close()
+                    self.__init__()
+                else:
+                    return data
+                finally:
+                    retries -= 1
             return []
 
         def __enter__(self):
