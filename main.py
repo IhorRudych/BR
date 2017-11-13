@@ -76,6 +76,9 @@ def main(args):
             self.ser.reset_output_buffer()
             return True
 
+        def echo(self, data):
+            return data
+
         def write(self, data):
             def bytes(s):
                 return ''.join(chr(x) for x in s)
