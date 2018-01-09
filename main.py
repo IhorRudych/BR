@@ -62,10 +62,9 @@ def main(args):
     class MyFuncs:
         def __init__(self):
             self.ser = None
-            for i in range(1,10):
-                path = '/dev/ttyACM{}'.format(i)
-                if os.path.exists(path):
-                    self.ser = serial.Serial(path, timeout=0)
+            path = '/dev/ttyACM.tranxend'
+            if os.path.exists(path):
+                self.ser = serial.Serial(path, timeout=0, write_timeout=0)
             if self.ser is None:
                 raise Exception('unable to locate /dev/ttyACM*')
             self.logger = logging.getLogger('xmlrpc')
@@ -89,6 +88,7 @@ def main(args):
                     self.ser.write(b'{}'.format(bytes(data)))
                     self.ser.flush()
                 except:
+                    self.logger.info('WRITE failure')
                     if self.ser is not None:
                         self.ser.close()
                     self.__init__()
@@ -105,6 +105,7 @@ def main(args):
                     data = [ord(x) for x in self.ser.read(2048)]
                     self.logger.info('READ {}'.format(data))
                 except:
+                    self.logger.info('READ failure')
                     if self.ser is not None:
                         self.ser.close()
                     self.__init__()
