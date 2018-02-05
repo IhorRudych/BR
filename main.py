@@ -42,7 +42,7 @@ def main(args):
     args = parser.parse_args()
 
     logger = logging.getLogger('xmlrpc')
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.ERROR)
 
     # create a file handler
     handler = logging.FileHandler('xmlrpc.log')
