@@ -7,6 +7,8 @@ import serial
 import argparse
 import logging
 import os
+import socket
+import zeroconf
 
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 from SimpleXMLRPCServer import SimpleXMLRPCRequestHandler
@@ -59,10 +61,32 @@ def main(args):
     server = SimpleXMLRPCServer((args.host, args.port), requestHandler=RequestHandler)
     server.register_introspection_functions()
 
+    class MyListener(object):
+
+        def __init__(self):
+            self.directory = {}
+
+        def remove_service(self, zeroconf, type, name):
+            print("Service %s removed" % (name,))
+            del self.directory[name]
+
+        def add_service(self, zeroconf, type, name):
+            info = zeroconf.get_service_info(type, name)
+            address = "{}".format(socket.inet_ntoa(info.address))
+            print("Service %s added (%s)" % (name, address))
+            self.directory[name] = {
+                'addr': address,
+                'port': info.port
+            }
+
+    zero = zeroconf.Zeroconf()
+    listener = MyListener()
+    browser = zeroconf.ServiceBrowser(zero, '_http._tcp.local.', listener)
+
     class MyFuncs:
         def __init__(self):
             self.ser = None
-            path = '/dev/ttyACM.tranxend'
+            path = '/dev/ttyACM.axcend'
             if os.path.exists(path):
                 self.ser = serial.Serial(path, timeout=0, write_timeout=0)
             if self.ser is None:
@@ -77,6 +101,17 @@ def main(args):
 
         def echo(self, data):
             return data
+
+        def list(self):
+            results = []
+            for name in listener.directory:
+                item = {
+		    'name': name,
+                    'addr': listener.directory[name]['addr'],
+                    'port': listener.directory[name]['port']
+                }
+                results.append(item)
+            return results
 
         def write(self, data):
             def bytes(s):
@@ -135,6 +170,7 @@ def main(args):
             pass
         finally:
             server.shutdown()
+            zeroconf.close()
 
     return 0
 
