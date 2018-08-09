@@ -67,17 +67,19 @@ def main(args):
             self.directory = {}
 
         def remove_service(self, zeroconf, type, name):
-            print("Service %s removed" % (name,))
-            del self.directory[name]
+            if name in self.directory:
+                print("Service %s removed" % (name,))
+                del self.directory[name]
 
         def add_service(self, zeroconf, type, name):
-            info = zeroconf.get_service_info(type, name)
-            address = "{}".format(socket.inet_ntoa(info.address))
-            print("Service %s added (%s)" % (name, address))
-            self.directory[name] = {
-                'addr': address,
-                'port': info.port
-            }
+            if 'axcend.bridge' in name:
+                info = zeroconf.get_service_info(type, name)
+                address = "{}".format(socket.inet_ntoa(info.address))
+                print("Service %s added (%s)" % (name, address))
+                self.directory[name] = {
+                    'addr': address,
+                    'port': info.port
+                }
 
     zero = zeroconf.Zeroconf()
     listener = MyListener()
