@@ -9,9 +9,25 @@ import logging
 import os
 import socket
 import zeroconf
+import subprocess
+import time
 
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 from SimpleXMLRPCServer import SimpleXMLRPCRequestHandler
+
+class Controller:
+
+    @staticmethod
+    def gotoBootloader():
+        subprocess.call('gpio mode 6 OUTPUT', shell=True)
+        subprocess.call('gpio write 6 0', shell=True)
+        time.sleep(0.1)
+        subprocess.call('gpio write 6 1', shell=True)
+
+    @staticmethod
+    def gotoApplication():
+        subprocess.call('rm /tmp/junk.bin', shell=True)
+        subprocess.call('dfu-util -a 0 -s 0x08000000:leave -U /tmp/junk.bin -Z 1', shell=True)
 
 # Restrict to a particular path.
 class RequestHandler(SimpleXMLRPCRequestHandler, object):
@@ -74,12 +90,13 @@ def main(args):
         def add_service(self, zeroconf, type, name):
             if 'axcend.bridge' in name:
                 info = zeroconf.get_service_info(type, name)
-                address = "{}".format(socket.inet_ntoa(info.address))
-                print("Service %s added (%s)" % (name, address))
-                self.directory[name] = {
-                    'addr': address,
-                    'port': info.port
-                }
+                if info:
+                    address = "{}".format(socket.inet_ntoa(info.address))
+                    print("Service %s added (%s)" % (name, address))
+                    self.directory[name] = {
+                        'addr': address,
+                        'port': info.port
+                    }
 
     zero = zeroconf.Zeroconf()
     listener = MyListener()
@@ -87,6 +104,7 @@ def main(args):
 
     class MyFuncs:
         def __init__(self):
+            Controller.gotoApplication()
             self.ser = None
             path = '/dev/ttyACM.axcend'
             if os.path.exists(path):
@@ -118,7 +136,7 @@ def main(args):
         def write(self, data):
             def bytes(s):
                 return ''.join(chr(x) for x in s)
-            self.logger.info('WRITE {}'.format(data))
+            self.logger.error('WRITE {}'.format(data))
             retries = 2
             while retries:
                 try:
