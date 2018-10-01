@@ -23,11 +23,13 @@ class Controller:
         subprocess.call('gpio write 6 0', shell=True)
         time.sleep(0.1)
         subprocess.call('gpio write 6 1', shell=True)
+        time.sleep(5)
 
     @staticmethod
     def gotoApplication():
         subprocess.call('rm /tmp/junk.bin', shell=True)
         subprocess.call('dfu-util -a 0 -s 0x08000000:leave -U /tmp/junk.bin -Z 1', shell=True)
+        time.sleep(5)
 
 # Restrict to a particular path.
 class RequestHandler(SimpleXMLRPCRequestHandler, object):
